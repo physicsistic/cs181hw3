@@ -4,6 +4,7 @@
 
 import sys
 import random
+from utils import *
 
 class Example():
     def __init__(self, location):
@@ -13,11 +14,7 @@ class Example():
 
     # squared Euclidian norm
     def d_squared(self, prototype):
-        d = 0
-        assert(len(prototype.location) == self.m)
-        for i in range(self.m):
-            d += (self.location[i] - prototype.location[i])**2
-        return d
+        return squareDistance(self.location, prototype.location)
 
     # Assigns example to closest prototype
     # Returns True if the example's prototype was changed
@@ -54,7 +51,7 @@ class Prototype():
         for example in self.examples:
             for i in range(self.m):
                 totals[i] += example.location[i]
-        mean = map(lambda total: total / self.m, totals)
+        mean = map(lambda total: total / len(self.examples), totals)
         self.location = mean
 
     def to_string(self):
@@ -64,6 +61,14 @@ class Prototype():
         string += ">"
         return string
 
+def mean_squared_error(prototypes):
+    total_squared_error = 0.
+    N = 0
+    for prototype in prototypes:
+        for example in prototype.examples:
+            N += 1
+            total_squared_error += example.d_squared(prototype)
+    return total_squared_error / N
 
 def k_means(data, K):
     # sample data to determine initial prototype assignment
@@ -84,18 +89,14 @@ def k_means(data, K):
             prototype.adjust_location()
 
         reassignments = count
+        print "Reassignments: " + str(count)
+        print "MSE: " + str(mean_squared_error(prototypes))
 
     print "Iterations: " + str(iterations)
-    print "Cluster means:"
+    print "Cluster info:"
     for prototype in prototypes:
-        print prototype.to_string()
+        #print prototype.to_string()
+        print "Size: " + str(len(prototype.examples))
 
-    # compute mean squared error
-    total_squared_error = 0.
-    for prototype in prototypes:
-        for example in prototype.examples:
-            total_squared_error += example.d_squared(prototype)
-    mean_squared_error = total_squared_error / len(examples)
-
-    return mean_squared_error
+    return mean_squared_error(prototypes)
                 
