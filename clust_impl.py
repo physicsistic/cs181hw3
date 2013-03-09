@@ -47,12 +47,13 @@ class Prototype():
 
     # move prototype to mean of examples
     def adjust_location(self):
-        totals = [0.]*self.m
-        for example in self.examples:
-            for i in range(self.m):
-                totals[i] += example.location[i]
-        mean = map(lambda total: total / len(self.examples), totals)
-        self.location = mean
+        if (len(self.examples) > 0):
+            totals = [0.]*self.m
+            for example in self.examples:
+                for i in range(self.m):
+                    totals[i] += example.location[i]
+            mean = map(lambda total: total / len(self.examples), totals)
+            self.location = mean
 
     def to_string(self):
         string = "<"
@@ -99,4 +100,9 @@ def k_means(data, K):
         print "Size: " + str(len(prototype.examples))
 
     return mean_squared_error(prototypes)
+
+def HAC(data, K):
+    clusters = map(lambda e: [e], data)
+    while (len(clusters) != K):
+
                 
