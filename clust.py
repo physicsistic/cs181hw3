@@ -78,7 +78,7 @@ def main():
     
     
     dataset.close()
-    printOutput(data,numExamples)
+    #printOutput(data,numExamples)
 
     # ==================== #
     # WRITE YOUR CODE HERE #

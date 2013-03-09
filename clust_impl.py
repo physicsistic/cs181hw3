@@ -14,9 +14,9 @@ class Example():
     # squared Euclidian norm
     def d_squared(self, prototype):
         d = 0
-        assert(len(self.location) == len(prototype))
-        for i in range(len(self.location)):
-            d += (self.location[i] - prototype[i])**2
+        assert(len(prototype.location) == self.m)
+        for i in range(self.m):
+            d += (self.location[i] - prototype.location[i])**2
         return d
 
     # Assigns example to closest prototype
@@ -35,8 +35,8 @@ class Example():
         # switch prototype assignment if necessary
         if (old_prototype != closest_prototype):
             if old_prototype:
-                old_prototype.examples.remove(example)
-            closest_protype.examples.append(example)
+                old_prototype.examples.remove(self)
+            closest_prototype.examples.append(self)
             self.prototype = closest_prototype
             reassignment = True
         return reassignment
@@ -53,8 +53,8 @@ class Prototype():
         totals = [0.]*self.m
         for example in self.examples:
             for i in range(self.m):
-                totals[i] += example[i]
-        mean = map(lambda total: total / m, totals)
+                totals[i] += example.location[i]
+        mean = map(lambda total: total / self.m, totals)
         self.location = mean
 
     def to_string(self):
@@ -73,6 +73,7 @@ def k_means(data, K):
     iterations = 0
     while (reassignments != 0):
         iterations += 1
+        print iterations
         count = 0
         # assign examples to closest prototypes
         for example in examples:
