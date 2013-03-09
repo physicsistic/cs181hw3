@@ -4,6 +4,7 @@
 
 import sys
 import random
+import pdb
 from utils import *
 
 class Example():
@@ -101,8 +102,57 @@ def k_means(data, K):
 
     return mean_squared_error(prototypes)
 
-def HAC(data, K):
+#========#
+# HAC    #
+#========#
+
+def distance_wrapper(args):
+    fn = args['fn']
+    return fn(args['c1'], args['c2'], args['d'])
+
+def HAC(data, K, metric):
+    CMIN = 0
+    CMAX = 1
+    CMEAN = 2
+    CCENT = 3
+    fn = cmin
+    if metric == CMAX:
+        fn = cmax
+    elif metric == CMEAN:
+        fn = cmean
+    elif metric == CCENT:
+        fn = ccent
+
+    m = len(data[0])
+
     clusters = map(lambda e: [e], data)
     while (len(clusters) != K):
+        # find pairs of clusters
+        cluster_pairs = []
+        for i in range(len(clusters)):
+            for j in range(i + 1, len(clusters)):
+                assert(i != j)
+                args = {'fn': fn, 'c1': clusters[i], 'c2': clusters[j], 'd': squareDistance}
+                cluster_pairs.append(args)
 
+        #pdb.set_trace()
+        closest_pair = argmin(cluster_pairs, distance_wrapper)
+        c1 = closest_pair['c1']
+        c2 = closest_pair['c2']
+        clusters.remove(c1)
+        clusters.remove(c2)
+        c1.extend(c2)
+        clusters.append(c1)
+
+    for c in clusters:
+        print "Cluster length: " + str(len(c))
+        totals = [0.]*m
+        for example in c:
+            for i in range(m):
+                totals[i] += example[i]
+        mean = map(lambda total: total / len(c), totals)
+        print "Cluster mean: " + str(mean)
+
+    return clusters
+        
                 
