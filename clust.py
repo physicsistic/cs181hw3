@@ -1,9 +1,13 @@
 # clust.py
 # -------
-# YOUR NAME HERE
+# Lexi Ross and Ye Zhao
+#
+# Note: implementations of clustering algorithms can be found
+# in clust_impl.py.
 
 import sys
 import random
+from clust_impl import *
 
 DATAFILE = "adults.txt"
 
@@ -79,6 +83,10 @@ def main():
     # ==================== #
     # WRITE YOUR CODE HERE #
     # ==================== #
+
+    sample = random.sample(data, numExamples)
+    result = k_means(sample, numClusters)
+    print "Mean squared error: " + str(result)
 
 if __name__ == "__main__":
     validateInput()
