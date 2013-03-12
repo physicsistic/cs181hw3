@@ -3,7 +3,8 @@
 # Implementation of clustering algorithms for hw3.
 
 import sys
-import random
+import random as rand
+import math
 from numpy import *
 import pdb
 from utils import *
@@ -79,7 +80,7 @@ def mean_squared_error(prototypes):
 
 def k_means(data, K):
     # sample data to determine initial prototype assignment
-    prototypes = map(lambda p: Prototype(p), random.sample(data, K))
+    prototypes = map(lambda p: Prototype(p), rand.sample(data, K))
     examples = map(lambda e: Example(e), data)
     reassignments = -1
     iterations = 0
@@ -191,20 +192,20 @@ def sample_covariance(examples, mean, m):
     variances = [0.]*m
     for i in range(m):
         for n in range(N):
-            variances[i] += (examples[n][0, i] - mean[0, i])*(examples[n][0, i] - mean[0, i])
+            variances[i] += (examples[n][0, i] - mean[0, i])**2
         variances[i] /= N
     return matrix([variances])
 
 def normal(x, mean, var):
-    return (1 / (var * Math.sqrt(2 * Math.pi)) * Math.exp(-.5 * ((x - mean) / var)**2)
+    return (1 / (var * math.sqrt(2 * math.pi))) * math.exp(-.5 * ((x - mean) / var)**2)
 
-def multinormal(example, param, m):
+def multi_normal(example, param, m):
     density = 1
     for i in range(m):
         density *= normal(example[0, i], param.mu[0, i], param.sigma[0, i])
     return density
 
-def auto_class(examples, K):
+def auto_class(examples, K, threshold):
     m = len(examples[0])
     N = len(examples)
 
@@ -216,28 +217,30 @@ def auto_class(examples, K):
 
     for k in range(K):
         # pick a random data point for cluster mean
-        r = random.randint(0, N - 1)
+        r = rand.randint(0, N - 1)
         theta[k].mu = examples[r]
         # set cluster variance to data covariance matrix
         theta[k].sigma = sample_covariance(examples, theta[k].mu, m)
-    gamma = [[0.]*k]*n
+    gamma = [[0.]*K]*N
 
 
     converged = False
+    iterations = 0
     while(not converged): 
+        iterations += 1
         # E-step
         for n in range(N):
             for k in range(K):
-                gamma[N][k] = theta[k].pi * multi_normal(examples[n], theta[k], m) / \
-                        sum([theta[j].pi * multi_normal(examples[n], theta[j], m) for j in range(K)])
+                pdb.set_trace()
+                gamma[n][k] = theta[k].pi * multi_normal(examples[n], theta[k], m) / \
+                        math.fsum([theta[j].pi * multi_normal(examples[n], theta[j], m) for j in range(K)])
         
-        N_hat = [sum([gamma[n][k] for n in range(N)]) for k in range(K)]
+        N_hat = [math.fsum([gamma[n][k] for n in range(N)]) for k in range(K)]
 
         # M-step
         old_theta = theta
         for k in range(K):
             theta[k].pi = N_hat[k] / N
-            # normalize pi later
             theta[k].mu = (1 / N_hat[k]) * sum([gamma[n][k] * examples[n] for n in range(N)])
             theta[k].sigma = (1 / N_hat[k]) * sum([gamma[n][k] * (examples[n] - theta[k].mu) \
                     * (examples[n] - theta[k].mu).T for n in range(N)])
@@ -253,8 +256,11 @@ def auto_class(examples, K):
         old_theta_vector = [old_theta[k].pi for k in range(K)] + sum([old_theta[k].mu.tolist() for k in range(K)]) \
                 + sum([old_theta[k].sigma.tolist() for k in range(K)])
         distance = math.sqrt(sum((x - y)**2 for (x,y) in zip(theta_vector, old_theta_vector)))
-        if (distance < threshold)
+        print "Iterations: " + str(iterations) + " Distance: " + str(distance)
+        if (distance < threshold):
             converged = True
+
+    return theta
 
 
 

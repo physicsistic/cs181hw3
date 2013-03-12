@@ -6,10 +6,10 @@
 # in clust_impl.py.
 
 import sys
-import random
+import random as rand
 from clust_impl import *
 
-DATAFILE = "adults-small.txt"
+DATAFILE = "adults.txt"
 
 #validateInput()
 
@@ -88,8 +88,11 @@ def main():
     #result = k_means(sample, numClusters)
     #print "Mean squared error: " + str(result)
 
-    sample = random.sample(data, numExamples)
-    result = HAC(sample, numClusters, 0)
+    #sample = random.sample(data, numExamples)
+    #result = HAC(sample, numClusters, 0)
+
+    sample = rand.sample(data, numExamples)
+    result = auto_class(sample, numClusters, 0.00001)
 
 if __name__ == "__main__":
     validateInput()
