@@ -64,7 +64,7 @@ def main():
 
     #Initialize the random seed
     
-    random.seed()
+    rand.seed()
 
     #Initialize the data
 

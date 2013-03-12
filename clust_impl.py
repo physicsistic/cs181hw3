@@ -5,6 +5,7 @@
 import sys
 import random as rand
 import math
+from copy import deepcopy
 from numpy import *
 import pdb
 from utils import *
@@ -187,17 +188,28 @@ class Parameter():
     #return (example - mean) * (example - mean).T
 
 def sample_covariance(examples, mean, m):
-    N = len(mean)
+    N = len(examples)
     #variances = [sum((example[i] - mean[i])*(example[i] - mean[i]) for example in examples)/N for i in range(m)]
     variances = [0.]*m
     for i in range(m):
-        for n in range(N):
-            variances[i] += (examples[n][0, i] - mean[0, i])**2
-        variances[i] /= N
+        #if i == 7:
+            #for n in range(N):
+                #print examples[n][0, i]
+                #print mean[0, i]
+            #variances[i] += (examples[n][0, i] - mean[0, i])**2
+        #variances[i] /= N
+        variances[i] = math.fsum([(examples[n][0, i] - mean[0, i])**2 for n in range(N)])/N
+        if variances[i] == 0:
+            print "zero variance for " + str(i)
     return matrix([variances])
 
 def normal(x, mean, var):
-    return (1 / (var * math.sqrt(2 * math.pi))) * math.exp(-.5 * ((x - mean) / var)**2)
+    if var == 0:
+        return 1
+    else:
+        norm = (1 / math.sqrt(2 * math.pi * var)) * math.exp(-.5 * ((x - mean) / math.sqrt(var))**2)
+        #print norm
+        return norm
 
 def multi_normal(example, param, m):
     density = 1
@@ -205,19 +217,28 @@ def multi_normal(example, param, m):
         density *= normal(example[0, i], param.mu[0, i], param.sigma[0, i])
     return density
 
+def matrix_square_d(example, mean, m):
+    product = matrix([[0.]*m])
+    distance = mean - example
+    for i in range(m):
+        product[0, i] = distance[0, i]**2
+    return product
+
 def auto_class(examples, K, threshold):
     m = len(examples[0])
     N = len(examples)
+    rand.seed()
 
     examples = [matrix([e]) for e in examples]
 
     # set initial values
-    old_theta = [Parameter(K, m)]*K
-    theta = [Parameter(K, m)]*K
+    old_theta = [Parameter(K, m) for k in range(K)]
+    theta = [Parameter(K, m) for k in range(K)]
 
     for k in range(K):
         # pick a random data point for cluster mean
         r = rand.randint(0, N - 1)
+        print r
         theta[k].mu = examples[r]
         # set cluster variance to data covariance matrix
         theta[k].sigma = sample_covariance(examples, theta[k].mu, m)
@@ -229,22 +250,23 @@ def auto_class(examples, K, threshold):
     while(not converged): 
         iterations += 1
         # E-step
+        #pdb.set_trace()
         for n in range(N):
             for k in range(K):
-                pdb.set_trace()
                 gamma[n][k] = theta[k].pi * multi_normal(examples[n], theta[k], m) / \
                         math.fsum([theta[j].pi * multi_normal(examples[n], theta[j], m) for j in range(K)])
         
         N_hat = [math.fsum([gamma[n][k] for n in range(N)]) for k in range(K)]
 
         # M-step
-        old_theta = theta
+        old_theta = deepcopy(theta)
         for k in range(K):
             theta[k].pi = N_hat[k] / N
             theta[k].mu = (1 / N_hat[k]) * sum([gamma[n][k] * examples[n] for n in range(N)])
-            theta[k].sigma = (1 / N_hat[k]) * sum([gamma[n][k] * (examples[n] - theta[k].mu) \
-                    * (examples[n] - theta[k].mu).T for n in range(N)])
-
+            theta[k].sigma = (1 / N_hat[k]) * sum([gamma[n][k] \
+                * matrix_square_d(examples[n], theta[k].mu, m) for n in range(N)])
+            pdb.set_trace()
+                
         # normalize mixing coefficients
         total = sum([theta[k].pi for k in range(K)])
         for k in range(K):
