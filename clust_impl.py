@@ -4,8 +4,13 @@
 
 import sys
 import random
+from numpy import *
 import pdb
 from utils import *
+
+#================#
+# K-means        #
+#================#
 
 class Example():
     def __init__(self, location):
@@ -102,9 +107,9 @@ def k_means(data, K):
 
     return mean_squared_error(prototypes)
 
-#========#
-# HAC    #
-#========#
+#============#
+# HAC        #
+#============#
 
 def distance_wrapper(args):
     fn = args['fn']
@@ -155,4 +160,103 @@ def HAC(data, K, metric):
 
     return clusters
         
+#===============#
+# AutoClass     #
+#===============#
+
+#class Parameter():
+    #def __init__(self, m):
+        #self.c = 0.5
+        #self.d1 = [0]*m
+        #self.d0 = [0]*m
+
+    ## distance metric for determining convergence
+    #def compare(other):
+        #vector1 = [self.c] + self.d1 + self.d0
+        #vector2 = [other.c] + other.d1 + other.d0
+        #return squareDistance(vector1, vector2)
+
+class Parameter():
+    def __init__(self, K, m):
+        self.pi = 1.0/K
+        self.mu = matrix([[0.]*m]) # means
+        self.sigma = matrix([[0.]*m]) # covariances
+
+#def covariance(example, mean):
+    #return (example - mean) * (example - mean).T
+
+def sample_covariance(examples, mean, m):
+    N = len(mean)
+    #variances = [sum((example[i] - mean[i])*(example[i] - mean[i]) for example in examples)/N for i in range(m)]
+    variances = [0.]*m
+    for i in range(m):
+        for n in range(N):
+            variances[i] += (examples[n][0, i] - mean[0, i])*(examples[n][0, i] - mean[0, i])
+        variances[i] /= N
+    return matrix([variances])
+
+def normal(x, mean, var):
+    return (1 / (var * Math.sqrt(2 * Math.pi)) * Math.exp(-.5 * ((x - mean) / var)**2)
+
+def multinormal(example, param, m):
+    density = 1
+    for i in range(m):
+        density *= normal(example[0, i], param.mu[0, i], param.sigma[0, i])
+    return density
+
+def auto_class(examples, K):
+    m = len(examples[0])
+    N = len(examples)
+
+    examples = [matrix([e]) for e in examples]
+
+    # set initial values
+    old_theta = [Parameter(K, m)]*K
+    theta = [Parameter(K, m)]*K
+
+    for k in range(K):
+        # pick a random data point for cluster mean
+        r = random.randint(0, N - 1)
+        theta[k].mu = examples[r]
+        # set cluster variance to data covariance matrix
+        theta[k].sigma = sample_covariance(examples, theta[k].mu, m)
+    gamma = [[0.]*k]*n
+
+
+    converged = False
+    while(not converged): 
+        # E-step
+        for n in range(N):
+            for k in range(K):
+                gamma[N][k] = theta[k].pi * multi_normal(examples[n], theta[k], m) / \
+                        sum([theta[j].pi * multi_normal(examples[n], theta[j], m) for j in range(K)])
+        
+        N_hat = [sum([gamma[n][k] for n in range(N)]) for k in range(K)]
+
+        # M-step
+        old_theta = theta
+        for k in range(K):
+            theta[k].pi = N_hat[k] / N
+            # normalize pi later
+            theta[k].mu = (1 / N_hat[k]) * sum([gamma[n][k] * examples[n] for n in range(N)])
+            theta[k].sigma = (1 / N_hat[k]) * sum([gamma[n][k] * (examples[n] - theta[k].mu) \
+                    * (examples[n] - theta[k].mu).T for n in range(N)])
+
+        # normalize mixing coefficients
+        total = sum([theta[k].pi for k in range(K)])
+        for k in range(K):
+            theta[k].pi /= total
+
+        # check convergence
+        theta_vector = [theta[k].pi for k in range(K)] + sum([theta[k].mu.tolist() for k in range(K)]) \
+                + sum([theta[k].sigma.tolist() for k in range(K)])
+        old_theta_vector = [old_theta[k].pi for k in range(K)] + sum([old_theta[k].mu.tolist() for k in range(K)]) \
+                + sum([old_theta[k].sigma.tolist() for k in range(K)])
+        distance = math.sqrt(sum((x - y)**2 for (x,y) in zip(theta_vector, old_theta_vector)))
+        if (distance < threshold)
+            converged = True
+
+
+
+
                 
