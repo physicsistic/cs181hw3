@@ -178,60 +178,97 @@ def HAC(data, K, metric):
         #vector2 = [other.c] + other.d1 + other.d0
         #return squareDistance(vector1, vector2)
 
-class Parameter():
-    def __init__(self, K, m):
-        self.pi = 1.0/K
-        self.mu = grumpy.matrix([[0.]*m]) # means
-        self.sigma = grumpy.matrix([[0.]*m]) # covariances
+#class Parameter():
+    #def __init__(self, K, m):
+        #self.pi = 1.0/K
+        #self.mu = grumpy.matrix([[0.]*m]) # means
+        #self.sigma = grumpy.matrix([[0.]*m]) # covariances
 
 #def covariance(example, mean):
     #return (example - mean) * (example - mean).T
 
-def sample_covariance(examples, mean, m):
+def sample_covariance(examples, mean, m, range_c):
     N = len(examples)
-    #variances = [sum((example[i] - mean[i])*(example[i] - mean[i]) for example in examples)/N for i in range(m)]
     variances = [0.]*m
-    for i in range(m):
-        variances[i] = math.fsum([(examples[n][0, i] - mean[0, i])**2 for n in range(N)])/N
-    return grumpy.matrix([variances])
+    for i in range_c:
+        variances[i] = math.fsum([(examples[n][i] - mean[i])**2 for n in range(N)])/N
+    return variances
 
-def normal(x, mean, var):
+def gaussian(x, mean, var):
     if var == 0:
         return 1
     else:
         norm = (1 / math.sqrt(2 * math.pi * var)) * math.exp(-.5 * ((x - mean) / math.sqrt(var))**2)
         return norm
 
-def multi_normal(example, param, m):
+def bernoulli(x, bern):
+    if x == 0:
+        return 1 - bern
+    else:
+        return bern
+
+def total_prob(example, bern, mu, sigma, m, continuous):
     density = 1
     for i in range(m):
-        density *= normal(example[0, i], param.mu[0, i], param.sigma[0, i])
+        if i in continuous:
+            density *= gaussian(example[i], mu[i], sigma[i])
+        else:
+            density *= bernoulli(example[i], bern[i])
     return density
 
-def matrix_square_d(example, mean, m):
-    product = grumpy.matrix([[0.]*m])
-    distance = mean - example
+def list_sum(lists):
+    m = len(lists[0])
+    total = [0.]*m
     for i in range(m):
-        product[0, i] = distance[0, i]**2
-    return product
+        for l in lists:
+            total[i] += l[i]
+    return total
+
+def inner_product_square(example, mean):
+    return [(x - y)**2 for x, y in zip(example, mean)]
 
 def auto_class(examples, K, threshold):
     m = len(examples[0])
     N = len(examples)
     rand.seed()
 
-    examples = [grumpy.matrix([e]) for e in examples]
-
     # set initial values
-    old_theta = [Parameter(K, m) for k in range(K)]
-    theta = [Parameter(K, m) for k in range(K)]
+    #old_theta = [Parameter(K, m) for k in range(K)]
+    #theta = [Parameter(K, m) for k in range(K)]
+
+    # divide attributes into continuous and discrete
+    continuous = [0, 9, 10, 44, 45, 46]
+    discrete = [i for i in range(48) if i not in continuous]
+    m_c = len(continuous)
+    m_d = len(discrete)
+
+    theta_pi = [0.]*K
+    theta_bern = [[0.]*m]*K
+    theta_mu = [[0.]*m]*K
+    theta_sigma = [[0.]*m]*K
 
     for k in range(K):
+        theta_pi[k] = 1./N
+        # initialize Bernoulli parameters based on expectation of attributes
+        for i in discrete:
+            if i <= 8:
+                theta_bern[k][i] = 1./8
+            elif i <= 17:
+                theta_bern[k][i] = 1./7
+            elif i <= 31:
+                theta_bern[k][i] = 1./14
+            elif i <= 37:
+                theta_bern[k][i] = 1./6
+            elif i <= 42:
+                theta_bern[k][i] = 1./5
+            else:
+                theta_bern[k][i] = 0.5
         # pick a random data point for cluster mean
         r = rand.randint(0, N - 1)
-        theta[k].mu = examples[r]
+        for i in continuous:
+            theta_mu[k][i] = examples[r][i]
         # set cluster variance to data covariance matrix
-        theta[k].sigma = sample_covariance(examples, theta[k].mu, m)
+        theta_sigma[k] = sample_covariance(examples, theta_mu[k], m, continuous)
 
     # initialize probabilities
     gamma = [[0.]*K]*N
@@ -244,43 +281,64 @@ def auto_class(examples, K, threshold):
         # E-step
         for n in range(N):
             for k in range(K):
-                gamma[n][k] = theta[k].pi * multi_normal(examples[n], theta[k], m) / \
-                        math.fsum([theta[j].pi * multi_normal(examples[n], theta[j], m) for j in range(K)])
+                gamma[n][k] = theta_pi[k] * total_prob(examples[n], theta_bern[k], theta_mu[k], \
+                        theta_sigma[k], m, continuous) / math.fsum([theta_pi[j] \
+                        * total_prob(examples[n], theta_bern[j], theta_mu[j], \
+                        theta_sigma[j], m, continuous) for j in range(K)])
         
         N_hat = [math.fsum([gamma[n][k] for n in range(N)]) for k in range(K)]
 
         # M-step
-        old_theta = deepcopy(theta)
+        old_theta_pi = deepcopy(theta_pi)
+        old_theta_bern = deepcopy(theta_bern)
+        old_theta_mu = deepcopy(theta_mu)
+        old_theta_sigma = deepcopy(theta_sigma)
+        # gamma[n][k] * examples[n] ==> [gamma[n][k] * examples[n][i] for i in d]
         for k in range(K):
-            theta[k].pi = N_hat[k] / N
-            theta[k].mu = (1 / N_hat[k]) * sum([gamma[n][k] * examples[n] for n in range(N)])
-            theta[k].sigma = (1 / N_hat[k]) * sum([gamma[n][k] \
-                * matrix_square_d(examples[n], theta[k].mu, m) for n in range(N)])
+            theta_pi[k] = N_hat[k] / N
+            # update bernoulli params
+            for i in discrete:
+                theta_bern[k][i] = 0
+                for n in range(N):
+                    theta_bern[k][i] += gamma[n][k] * examples[n][i]
+                theta_bern[k][i] *= (1 / N_hat[k])
+            # update gaussian means
+            for i in continuous:
+                theta_mu[k][i] = 0
+                for n in range(N):
+                    theta_mu[k][i] += gamma[n][k] * examples[n][i]
+                theta_mu[k][i] *= (1 / N_hat[k])
+            # update gaussian variances
+            for i in continuous:
+                theta_sigma[k][i] = 0
+                for n in range(N):
+                    theta_sigma[k][i] += gamma[n][k] * inner_product_square(examples[n], theta_mu[k])[i]
+                theta_sigma[k][i] *= (1 / N_hat[k])
                 
         # normalize mixing coefficients
-        total = sum([theta[k].pi for k in range(K)])
-        for k in range(K):
-            theta[k].pi /= total
+        #total = sum([theta[k].pi for k in range(K)])
+        #for k in range(K):
+            #theta[k].pi /= total
 
         # check convergence
         theta_vector = []
         old_theta_vector = []
         for k in range(K):
-            theta_vector.append(theta[k].pi)
-            old_theta_vector.append(old_theta[k].pi)
+            theta_vector.append(theta_pi[k])
+            old_theta_vector.append(old_theta_pi[k])
         for k in range(K):
-            theta_vector += theta[k].mu.tolist()[0]
-            old_theta_vector += old_theta[k].mu.tolist()[0]
+            theta_vector += theta_mu[k]
+            old_theta_vector += old_theta_mu[k]
         for k in range(K):
-            theta_vector += theta[k].sigma.tolist()[0]
-            old_theta_vector += old_theta[k].sigma.tolist()[0]
+            theta_vector += theta_sigma[k]
+            old_theta_vector += old_theta_sigma[k]
 
-        distance = math.sqrt(sum((x - y)**2 for (x,y) in zip(theta_vector, old_theta_vector)))
+        distance = math.sqrt(sum([(x - y)**2 for (x,y) in zip(theta_vector, old_theta_vector)]))
         print "Iterations: " + str(iterations) + " Distance: " + str(distance)
         if (distance < threshold):
             converged = True
 
-    return theta
+    return theta_pi
 
 
 
