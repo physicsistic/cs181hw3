@@ -198,7 +198,13 @@ def gaussian(x, mean, var):
     if var == 0:
         return 1
     else:
-        norm = (1 / math.sqrt(2 * math.pi * var)) * math.exp(-.5 * ((x - mean) / math.sqrt(var))**2)
+        norm = (1 / math.sqrt(2 * math.pi * var)) * math.exp(-1*(x - mean)**2 / 2*var)
+        #pdb.set_trace()
+        #if norm > 1:
+            #print "X: " + str(x)
+            #print "Mean: " + str(mean)
+            #print "Var: " + str(var)
+            #print norm
         return norm
 
 def bernoulli(x, bern):
@@ -243,12 +249,12 @@ def auto_class(examples, K, threshold):
     m_d = len(discrete)
 
     theta_pi = [0.]*K
-    theta_bern = [[0.]*m]*K
-    theta_mu = [[0.]*m]*K
-    theta_sigma = [[0.]*m]*K
+    theta_bern = [[0.]*m for k in range(K)]
+    theta_mu = [[0.]*m for k in range(K)]
+    theta_sigma = [[0.]*m for k in range(K)]
 
     for k in range(K):
-        theta_pi[k] = 1./N
+        theta_pi[k] = 1./K
         # initialize Bernoulli parameters based on expectation of attributes
         for i in discrete:
             if i <= 8:
@@ -265,13 +271,15 @@ def auto_class(examples, K, threshold):
                 theta_bern[k][i] = 0.5
         # pick a random data point for cluster mean
         r = rand.randint(0, N - 1)
+        print r
+        #pdb.set_trace()
         for i in continuous:
             theta_mu[k][i] = examples[r][i]
         # set cluster variance to data covariance matrix
         theta_sigma[k] = sample_covariance(examples, theta_mu[k], m, continuous)
 
     # initialize probabilities
-    gamma = [[0.]*K]*N
+    gamma = [[0.]*K for n in range(N)]
 
 
     converged = False
@@ -280,11 +288,15 @@ def auto_class(examples, K, threshold):
         iterations += 1
         # E-step
         for n in range(N):
+            #print "Gamma before: " + str(gamma[n])
             for k in range(K):
+                #print "Before: " + str(gamma[n][k])
                 gamma[n][k] = theta_pi[k] * total_prob(examples[n], theta_bern[k], theta_mu[k], \
                         theta_sigma[k], m, continuous) / math.fsum([theta_pi[j] \
                         * total_prob(examples[n], theta_bern[j], theta_mu[j], \
                         theta_sigma[j], m, continuous) for j in range(K)])
+                #print "After: " + str(gamma[n][k])
+            #print "Gamma after: " + str(gamma[n])
         
         N_hat = [math.fsum([gamma[n][k] for n in range(N)]) for k in range(K)]
 
