@@ -7,9 +7,11 @@
 
 import sys
 import random as rand
-from clust_impl import *
+import k_means
+import hac
+import autoclass
 
-DATAFILE = "adults.txt"
+DATAFILE = "adults-small.txt"
 
 #validateInput()
 
@@ -84,15 +86,18 @@ def main():
     # WRITE YOUR CODE HERE #
     # ==================== #
 
-    #sample = random.sample(data, numExamples)
-    #result = k_means(sample, numClusters)
+    #sample = rand.sample(data, numExamples)
+    #result = k-means.k_means(sample, numClusters)
     #print "Mean squared error: " + str(result)
 
-    #sample = random.sample(data, numExamples)
-    #result = HAC(sample, numClusters, 0)
-
     sample = rand.sample(data, numExamples)
-    result = auto_class(sample, numClusters, 0.00001)
+    min_clusters = hac.HAC(sample, numClusters, 0)
+    max_clusters = hac.HAC(sample, numClusters, 1)
+    hac.scatterplot(min_clusters, numClusters, numExamples, "min")
+    hac.scatterplot(max_clusters, numClusters, numExamples, "max")
+
+    #sample = rand.sample(data, numExamples)
+    #result = autoclass.auto_class(sample, numClusters, 0.00001)
 
 if __name__ == "__main__":
     validateInput()
