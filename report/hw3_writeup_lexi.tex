@@ -27,10 +27,19 @@
 \section{HAC Experimentation}
 \subsection{Min vs. max distance}
 \begin{center}
-\begin{tabular}{c | c}
-Metric & Cluster sizes \\ \hline
-Min & $\{ \}$ \\ \hline
-Max & $\{ \}$ \\ \hline
+\begin{tabular}{c c c | c}
+Metric & num-examples & K & Cluster sizes \\ \hline
+Min & 100 & 4 & $\{1, 23, 71, 5 \}$ \\ \hline
+Max & 100 & 4 & $\{22, 26, 29, 23 \}$ \\ \hline
+\end{tabular}
+\end{center}
+
+\subsection{Mean vs. centroid distance}
+\begin{center}
+\begin{tabular}{c c c | c}
+Metric & num-examples & K & Cluster sizes \\ \hline
+Mean & 200 & 4 & $\{1, 4, 47, 148 \}$ \\ \hline
+Centroid & 200 & 4 & $\{4, 46, 2, 148 \}$ \\ \hline
 \end{tabular}
 \end{center}
 

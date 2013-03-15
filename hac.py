@@ -77,11 +77,12 @@ def scatterplot(clusters, K, N, metric):
         labels.append(label)
         plots.append(axes.scatter(xs, ys, zs, c=colors[i], label=label))
         rects.append(patches.Rectangle((0, 0), 1, 1, color=colors[i]))
-    #legend((rects[0], rects[1], rects[2], rects[3]), (labels[0], labels[1], labels[2], labels[3]), loc="best")
-    #handles, labels = axes.get_legend_handles_labels()
+    xLabel = axes.set_xlabel('Age', linespacing=3.2)
+    yLabel = axes.set_ylabel('Education', linespacing=3.1)
+    zLabel = axes.set_zlabel('Income', linespacing=3.4)
     axes.legend(rects, labels, loc=3, prop={'size':10})
     plot_name = "HAC Clustering for K=" + str(K) + ", N=" + str(N) + ", " + metric + " distance metric"
     plt.title(plot_name)
 
-    file_name = "hac_k" + str(K) + "_n_" + str(N) + "_" + metric
+    file_name = "hac_k" + str(K) + "_n" + str(N) + "_" + metric
     results.savefig(file_name + ".eps", dpi=600)

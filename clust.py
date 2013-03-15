@@ -93,8 +93,13 @@ def main():
     sample = rand.sample(data, numExamples)
     min_clusters = hac.HAC(sample, numClusters, 0)
     max_clusters = hac.HAC(sample, numClusters, 1)
+    mean_clusters = hac.HAC(sample, numClusters, 2)
+    centroid_clusters = hac.HAC(sample, numClusters, 3)
     hac.scatterplot(min_clusters, numClusters, numExamples, "min")
     hac.scatterplot(max_clusters, numClusters, numExamples, "max")
+    hac.scatterplot(mean_clusters, numClusters, numExamples, "mean")
+    hac.scatterplot(centroid_clusters, numClusters, numExamples, "centroid")
+    
 
     #sample = rand.sample(data, numExamples)
     #result = autoclass.auto_class(sample, numClusters, 0.00001)
